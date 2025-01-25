@@ -2,6 +2,14 @@ use std::cmp::max;
 use std::fmt;
 use std::fmt::Formatter;
 
+/// # Non-directional Graph
+/// Abstraction of dynamic non-directional graphs, meaning vertices
+/// (the connection from one node to another) are considered the same
+/// as in the other direction.
+///
+/// The underlying implementation employs an adjacent matrix data structure,
+/// where space complexity is proportional to the square of the node numbers,
+/// and time complexity of querying is constant.
 pub(crate) struct NdGraph {
     len: u32,
     capacity: u32,
