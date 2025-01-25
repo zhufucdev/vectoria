@@ -4,17 +4,29 @@ use std::collections::HashMap;
 use std::fs::File;
 use std::path::Path;
 use std::sync::{Arc, Mutex, MutexGuard};
-use std::{fs, io};
+use std::{fmt, fs, io};
+use std::fmt::Formatter;
 
 pub struct ManagementSystem<H: DbHandle> {
     handle: Mutex<Arc<H>>,
     loaded_db: HashMap<String, Arc<Database>>,
 }
 
+#[derive(Debug)]
 pub enum Error {
     NameConflict(String),
     IO(io::Error),
     Database(db::Error),
+}
+
+impl fmt::Display for Error {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        match self {
+            Error::NameConflict(name) => write!(f, "conflicting name of {name}"),
+            Error::IO(e) => write!(f, "IO failed because {e}"),
+            Error::Database(e) => write!(f, "database failed because {e}")
+        }
+    }
 }
 
 struct FsDbHandle {
@@ -38,7 +50,8 @@ impl DbHandle for FsDbHandle {
         if fs::exists(&file).map_err(|e| Error::IO(e))? {
             Err(Error::NameConflict(name.clone()))
         } else {
-            Ok(Database::new(name, dim_size))
+            let fd = File::open(file).map_err(|e| Error::IO(e))?;
+            Ok(Database::new(name, dim_size, Box::new(fd)))
         }
     }
 
@@ -46,10 +59,7 @@ impl DbHandle for FsDbHandle {
         let file = self.get_underlying_file(name);
         if fs::exists(&file).unwrap_or(false) {
             let fd = File::open(file).unwrap();
-            let parsed = Database::read(fd);
-            if parsed.is_ok() {
-                return Ok(Some(parsed.unwrap()));
-            }
+            return Ok(Some(Database::read(name, Box::new(fd))));
         }
         Ok(None)
     }
@@ -67,7 +77,7 @@ impl ManagementSystem<FsDbHandle> {
 }
 
 impl<H: DbHandle> ManagementSystem<H> {
-    fn gc() {
+    fn gc(&mut self) {
         // TODO: implement garbage collector for DBMS
     }
 
