@@ -151,6 +151,10 @@ impl NdGraph {
     pub(crate) fn capacity(&self) -> u32 {
         self.capacity
     }
+    
+    pub(crate) fn is_empty(&self) -> bool {
+        self.len() <= 0
+    }
 
     pub(crate) fn distance_between(&self, a: u32, b: u32) -> Result<Option<f32>, Error> {
         if a >= self.len() || b >= self.len() {

@@ -1,11 +1,11 @@
-use crate::model::db;
-use crate::model::db::Database;
+use crate::db;
+use crate::db::Database;
 use std::collections::HashMap;
+use std::fmt::Formatter;
 use std::fs::File;
 use std::path::Path;
 use std::sync::{Arc, Mutex, MutexGuard};
 use std::{fmt, fs, io};
-use std::fmt::Formatter;
 
 pub struct ManagementSystem<H: DbHandle> {
     handle: Mutex<Arc<H>>,
@@ -24,7 +24,7 @@ impl fmt::Display for Error {
         match self {
             Error::NameConflict(name) => write!(f, "conflicting name of {name}"),
             Error::IO(e) => write!(f, "IO failed because {e}"),
-            Error::Database(e) => write!(f, "database failed because {e}")
+            Error::Database(e) => write!(f, "database failed because {e}"),
         }
     }
 }
@@ -59,7 +59,13 @@ impl DbHandle for FsDbHandle {
         let file = self.get_underlying_file(name);
         if fs::exists(&file).unwrap_or(false) {
             let fd = File::open(file).unwrap();
-            return Ok(Some(Database::read(name, Box::new(fd))));
+            return Ok(Some(Database::read(name, Box::new(fd)).map_err(
+                |e| match e {
+                    db::Error::Header(e) => Error::Database(db::Error::Header(e)),
+                    db::Error::IO(e) => Error::IO(e),
+                    db::Error::Parse() => Error::Database(e),
+                },
+            )?));
         }
         Ok(None)
     }
