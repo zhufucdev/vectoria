@@ -1,13 +1,7 @@
 use crate::ds::graph::NdGraph;
 use crate::ds::layer::HnswLayer;
-use crate::vio::RandomAccess;
+use crate::vio::{Error, RandomAccess};
 use byteorder::{BigEndian, ReadBytesExt};
-use std::io;
-
-pub(crate) enum Error {
-    EOF,
-    IO(io::Error),
-}
 
 pub(crate) fn read(fd: &mut dyn RandomAccess) -> Result<HnswLayer, Error> {
     let level = fd.read_u32::<BigEndian>().map_err(|e| Error::IO(e))?;
