@@ -11,6 +11,7 @@ use std::sync::{Arc, Mutex};
 use std::{fmt, io};
 
 pub type DbVector = Vec<f32>;
+pub type DbIndex = u32;
 
 struct VectorHandle {
     dim_size: u32,
@@ -32,12 +33,13 @@ impl VectorHandle {
     }
 
     fn get(&mut self, id: u32) -> Result<Option<DbVector>, Error> {
-        // employ a binary search between [first_id] and [last_id]
         let unit = self.unit_size_bytes();
         self.fd.seek(SeekFrom::End(0)).map_err(|e| Error::IO(e))?;
         let count =
             (self.fd.stream_position().map_err(|e| Error::IO(e))? - self.data_section) / unit;
         let (mut head, mut tail) = (0u64, count - 1);
+
+        // employ a binary search between [head] and [tail] in fd
         loop {
             self.fd
                 .seek(SeekFrom::Start(head * unit + self.data_section))
@@ -135,7 +137,7 @@ impl Database {
         }
     }
 
-    pub fn get_vector(&mut self, id: u32) -> Result<Option<Arc<DbVector>>, Error> {
+    pub fn get_vector(&mut self, id: DbIndex) -> Result<Option<Arc<DbVector>>, Error> {
         let mut handle = self.handle.lock_auto_clear_poison();
         let mut cache = self.loaded_vectors.lock_auto_clear_poison();
         match cache.get(&id) {
