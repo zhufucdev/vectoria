@@ -1,13 +1,12 @@
 use crate::db;
 use crate::db::Database;
-use crate::semaphore::LockAutoClear;
+use crate::ext::semaphore::LockAutoClear;
 use std::collections::HashMap;
 use std::fmt::Formatter;
 use std::fs::File;
 use std::path::Path;
 use std::sync::{Arc, Mutex};
 use std::{fmt, fs, io};
-use std::io::Seek;
 
 pub struct ManagementSystem<H: DbHandle> {
     handle: Mutex<Arc<H>>,

@@ -1,5 +1,5 @@
 use crate::ds::layer::HnswLayer;
-use crate::semaphore::LockAutoClear;
+use crate::ext::semaphore::LockAutoClear;
 use crate::vio;
 use crate::vio::header::DbHeader;
 use crate::vio::RandomAccess;
