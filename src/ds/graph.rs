@@ -5,7 +5,7 @@ use std::fmt::Formatter;
 /// # Non-directional Graph
 /// Abstraction of dynamic non-directional graphs, meaning vertices
 /// (the connection from one node to another) are considered the same
-/// as in the other direction.
+/// as in the other direction, and the capacity is incremented automatically.
 ///
 /// The underlying implementation employs an adjacent matrix data structure,
 /// where space complexity is proportional to the square of the node numbers,
@@ -22,31 +22,16 @@ pub(crate) struct NdGraph {
 type AdjList = Vec<(u32, u32, f32)>;
 
 #[derive(Debug, PartialEq)]
-pub(crate) enum Boundary {
-    Capacity,
-    Index,
-}
-
-impl fmt::Display for Boundary {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        match self {
-            Boundary::Capacity => write!(f, "capacity"),
-            Boundary::Index => write!(f, "index"),
-        }
-    }
-}
-
-#[derive(Debug, PartialEq)]
 pub(crate) enum Error {
-    ExceedBoundary(Boundary, u32, u32),
+    ExceedBoundary(u32, u32),
 }
 
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         match self {
-            Error::ExceedBoundary(what, e, r) => write!(
+            Error::ExceedBoundary(e, r) => write!(
                 f,
-                "exceeds {what} boundary (expected to be at least {e}, actual {r})"
+                "exceeds boundary (expected to be at least {e}, actual {r})"
             ),
         }
     }
@@ -115,35 +100,27 @@ impl NdGraph {
         )
     }
 
-    pub(crate) fn insert(&mut self, count: u32) -> Result<u32, Error> {
+    pub(crate) fn push(&mut self, count: u32) -> Result<u32, Error> {
         if self.capacity < self.len() + count {
-            return Err(Error::ExceedBoundary(
-                Boundary::Capacity,
-                self.capacity + 1,
-                self.len(),
-            ));
+            let lacking = self.len() + count - self.capacity();
+            for row in 0..lacking + self.capacity() {
+                self.adjacent_matrix
+                    .push(Vec::from_iter((0..row).map(|_| f32::INFINITY)))
+            }
+            self.capacity += lacking;
         }
 
-        let old_len = self.len();
-        for i in 0..count {
-            self.adjacent_matrix
-                .push(Vec::from_iter((0..i + old_len).map(|_| f32::INFINITY)))
-        }
         self.len += count;
         Ok(self.len() - 1)
     }
 
-    pub(crate) fn insert_one(&mut self) -> Result<u32, Error> {
-        self.insert(1)
+    pub(crate) fn push_one(&mut self) -> Result<u32, Error> {
+        self.push(1)
     }
 
     pub(crate) fn connect(&mut self, a: u32, b: u32, distance: f32) -> Result<(), Error> {
         if a >= self.len() || b >= self.len() {
-            Err(Error::ExceedBoundary(
-                Boundary::Index,
-                max(a, b) + 1,
-                self.len(),
-            ))
+            Err(Error::ExceedBoundary(max(a, b) + 1, self.len()))
         } else {
             let (a, b) = if a > b { (a, b) } else { (b, a) };
             self.adjacent_matrix[a as usize][b as usize] = distance;
@@ -165,11 +142,7 @@ impl NdGraph {
 
     pub(crate) fn distance_between(&self, a: u32, b: u32) -> Result<Option<f32>, Error> {
         if a >= self.len() || b >= self.len() {
-            Err(Error::ExceedBoundary(
-                Boundary::Index,
-                max(a, b) + 1,
-                self.len(),
-            ))
+            Err(Error::ExceedBoundary(max(a, b) + 1, self.len()))
         } else {
             let (a, b) = if a > b { (a, b) } else { (b, a) };
             let dis = self.adjacent_matrix[a as usize][b as usize];
@@ -185,6 +158,7 @@ mod test {
 
     #[test]
     fn constructors_work() {
+        _ = NdGraph::new();
         for size in 1..=14 {
             _ = NdGraph::with_capacity(size);
         }
@@ -192,21 +166,18 @@ mod test {
 
     #[test]
     fn insertion_works() {
-        let mut graph = NdGraph::with_capacity(10);
+        let mut graph = NdGraph::new();
+        assert_eq!(graph.push(1000).unwrap(), 999);
+        assert_eq!(graph.capacity(), 1000);
 
-        assert_eq!(graph.insert_one().unwrap(), 0);
-        // out of bound
-        graph.insert(9).unwrap();
-        assert_eq!(
-            graph.insert_one(),
-            Err(Error::ExceedBoundary(Boundary::Capacity, 11u32, 10u32))
-        );
+        graph = NdGraph::with_capacity(10);
+        assert_eq!(graph.push_one().unwrap(), 0);
     }
 
     #[test]
     fn connectivity_works() {
         let mut graph = NdGraph::with_capacity(10);
-        graph.insert(graph.capacity()).unwrap();
+        graph.push(graph.capacity()).unwrap();
         graph.connect(0, 9, E).unwrap();
         assert_eq!(graph.distance_between(0, 9).unwrap().unwrap(), E);
         graph.connect(9, 1, PI).unwrap();
@@ -216,7 +187,7 @@ mod test {
         // out of bound
         assert_eq!(
             graph.distance_between(10, 0),
-            Err(Error::ExceedBoundary(Boundary::Index, 11, graph.capacity))
+            Err(Error::ExceedBoundary(11, graph.capacity))
         );
     }
 }
