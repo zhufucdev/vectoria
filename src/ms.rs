@@ -65,6 +65,7 @@ impl DbHandle for FsDbHandle {
                     db::Error::Header(e) => Error::Database(db::Error::Header(e)),
                     db::Error::IO(e) => Error::IO(e),
                     db::Error::Parse() => Error::Database(e),
+                    db::Error::Dimension(_, _) => Error::Database(e),
                 },
             )?));
         }

@@ -2,7 +2,7 @@ use std::io;
 use std::io::{Read, Seek, Write};
 
 pub(crate) mod layer;
-pub(crate) mod header;
+pub(crate) mod dbheader;
 pub(crate) mod vector;
 
 pub(crate) trait RandomAccess: Read + Write + Seek {}

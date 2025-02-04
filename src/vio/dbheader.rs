@@ -1,6 +1,7 @@
 use crate::vio::RandomAccess;
-use byteorder::{BigEndian, ReadBytesExt};
+use byteorder::{BigEndian, ReadBytesExt, WriteBytesExt};
 use std::fmt::Formatter;
+use std::io::Write;
 use std::str::FromStr;
 use std::{fmt, io};
 
@@ -36,17 +37,19 @@ impl fmt::Display for Error {
     }
 }
 
-pub(crate) struct DbHeader {
-    pub version: u8,
-    pub dim_size: u32,
-    pub data_section: u64,
-}
-
 const PRODUCT: &str = "vectoriadb;version";
 type VersionNumber = u8;
+type DimSize = u32;
+type DataSection = u64;
 pub(crate) const CURRENT_VERSION: VersionNumber = 1u8;
 
-pub(crate) fn db_read(fd: &mut dyn RandomAccess) -> Result<DbHeader, Error> {
+pub(crate) struct DbHeader {
+    pub version: VersionNumber,
+    pub dim_size: DimSize,
+    pub data_section: DataSection,
+}
+
+pub(crate) fn read(fd: &mut dyn RandomAccess) -> Result<DbHeader, Error> {
     let mut product_buf = [0u8; PRODUCT.len()];
     fd.read_exact(&mut product_buf).map_err(|e| Error::IO(e))?;
     let product_name = std::str::from_utf8(&product_buf)
@@ -69,11 +72,21 @@ pub(crate) fn db_read(fd: &mut dyn RandomAccess) -> Result<DbHeader, Error> {
 }
 
 impl DbHeader {
-    pub(crate) fn new(dim_size: u32) -> DbHeader {
+    pub(crate) fn new(dim_size: DimSize) -> DbHeader {
         DbHeader {
             version: CURRENT_VERSION,
             dim_size,
-            data_section: (PRODUCT.len() + size_of::<VersionNumber>()) as u64,
+            data_section: (PRODUCT.len()
+                + size_of::<VersionNumber>()
+                + size_of::<DimSize>()
+                + size_of::<DataSection>()) as u64,
         }
+    }
+
+    pub(crate) fn write(&self, fd: &mut dyn RandomAccess) -> Result<(), Error> {
+        write!(fd, "{0}{1}", PRODUCT, self.version).map_err(|e| Error::IO(e))?;
+        fd.write_u64::<BigEndian>(self.data_section).map_err(|e| Error::IO(e))?;
+        fd.write_u32::<BigEndian>(self.dim_size).map_err(|e| Error::IO(e))?;
+        Ok(())
     }
 }

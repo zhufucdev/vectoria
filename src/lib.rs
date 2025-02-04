@@ -1,9 +1,9 @@
 extern crate core;
 
-pub mod algorithm;
+mod algorithm;
 mod ds;
-mod db;
-mod ms;
+pub mod db;
+pub mod ms;
 mod vio;
 mod ext;
 
