@@ -16,6 +16,11 @@ pub(crate) struct NdGraph {
     adjacent_matrix: Vec<Vec<f32>>,
 }
 
+/// # Adjacent List
+/// Using a list of tuples to represent the [NdGraph] structure.
+/// The first couple stands for nodes, the last being the distance.
+type AdjList = Vec<(u32, u32, f32)>;
+
 #[derive(Debug, PartialEq)]
 pub(crate) enum Boundary {
     Capacity,
@@ -66,7 +71,7 @@ impl NdGraph {
         }
     }
 
-    pub(crate) fn from_adj_list(adj_list: Vec<(u32, u32, f32)>) -> NdGraph {
+    pub(crate) fn from_adj_list(adj_list: AdjList) -> NdGraph {
         let len = *adj_list
             .iter()
             .flat_map(|(a, b, _)| [a, b])
@@ -104,7 +109,9 @@ impl NdGraph {
         Vec::from_iter(
             (0..self.len())
                 .map(|n| (n, self.adjacent_matrix[query_node as usize][n as usize]))
-                .filter(|n| self.adjacent_matrix[query_node as usize][n.0 as usize] < f32::INFINITY),
+                .filter(|n| {
+                    self.adjacent_matrix[query_node as usize][n.0 as usize] < f32::INFINITY
+                }),
         )
     }
 
@@ -151,7 +158,7 @@ impl NdGraph {
     pub(crate) fn capacity(&self) -> u32 {
         self.capacity
     }
-    
+
     pub(crate) fn is_empty(&self) -> bool {
         self.len() <= 0
     }
