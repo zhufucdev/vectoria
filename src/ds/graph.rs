@@ -168,7 +168,7 @@ impl Graph<NdgError> for NdGraph {
 
 impl NdGraph {
     pub(crate) fn push_many(&mut self, count: u32) -> u32 {
-        if self.capacity < self.len() + count {
+        if self.capacity() < self.len() + count {
             let lacking = self.len() + count - self.capacity();
             for row in 0..lacking + self.capacity() {
                 self.adjacent_matrix
@@ -318,7 +318,7 @@ mod test {
     use std::f32::consts::{E, PI};
 
     #[test]
-    fn constructors_work() {
+    fn ndg_constructors_work() {
         _ = NdGraph::new();
         for size in 1..=14 {
             _ = NdGraph::with_capacity(size);
@@ -326,7 +326,7 @@ mod test {
     }
 
     #[test]
-    fn insertion_works() {
+    fn ndg_insertion_works() {
         let mut graph = NdGraph::new();
         assert_eq!(graph.push_many(1000), 999);
         assert_eq!(graph.capacity(), 1000);
@@ -336,7 +336,7 @@ mod test {
     }
 
     #[test]
-    fn connectivity_works() {
+    fn ndg_connectivity_works() {
         let mut graph = NdGraph::with_capacity(10);
         graph.push_many(graph.capacity());
         graph.connect(0, 9, E).unwrap();
@@ -350,5 +350,29 @@ mod test {
             graph.get_vertice(10, 0),
             Err(NdgError::ExceedBoundary(11, graph.capacity))
         );
+    }
+    
+    #[test]
+    fn acndg_constructors_works() {
+        _ = AnyCastNdGraph::new();
+        for cap in 1..=14 {
+            _ = AnyCastNdGraph::with_capacity(cap)
+        }
+    }
+    
+    #[test]
+    fn acndg_connectivity_works() {
+        let mut graph = AnyCastNdGraph::new();
+        graph.connect(36, 69, 0.42).unwrap();
+        assert_eq!(0.42, graph.get_vertice(36, 69).unwrap().unwrap());
+    }
+    
+    #[test]
+    fn acndg_many_connection_works() {
+        let mut graph = AnyCastNdGraph::new();
+        for i in 0..=1000 {
+            graph.connect(i + 69, i + 4069, 420f32 / i as f32).unwrap()
+        }
+        assert_eq!(2000, graph.len());
     }
 }
