@@ -1,4 +1,4 @@
-use crate::ds::graph::NdGraph;
+use crate::ds::graph::{Graph, NdGraph};
 
 pub(crate) struct HnswLayer {
     graph: NdGraph,

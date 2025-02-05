@@ -1,4 +1,4 @@
-use crate::ds::graph::NdGraph;
+use crate::ds::graph::{Graph, NdGraph};
 use crate::ds::layer::HnswLayer;
 use crate::vio::{Error, RandomAccess};
 use byteorder::{BigEndian, ReadBytesExt};
