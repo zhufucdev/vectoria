@@ -170,11 +170,12 @@ impl NdGraph {
     pub(crate) fn push_many(&mut self, count: u32) -> u32 {
         if self.capacity() < self.len() + count {
             let lacking = self.len() + count - self.capacity();
-            for row in 0..lacking + self.capacity() {
-                self.adjacent_matrix
-                    .push(Vec::from_iter((0..row).map(|_| f32::INFINITY)))
+            for row in 1..=lacking {
+                self.adjacent_matrix.push(Vec::from_iter(
+                    (0..row + self.capacity()).map(|_| f32::INFINITY),
+                ))
             }
-            self.capacity += lacking;
+            self.capacity = self.len() + count;
         }
 
         self.len += count;
@@ -199,7 +200,7 @@ struct AnyCastNdGraph {
 
 #[derive(Debug, PartialEq)]
 enum AcndgError {
-    NodeNonexistence(u32)
+    NodeNonexistence(u32),
 }
 
 impl AnyCastNdGraph {
@@ -265,26 +266,24 @@ impl Graph<AcndgError> for AnyCastNdGraph {
     fn get_neighbors(&self, query_node: u32) -> Vec<u32> {
         match self.mapping.get(&query_node) {
             None => vec![],
-            Some(m) => self.graph.get_neighbors(*m)
+            Some(m) => self.graph.get_neighbors(*m),
         }
     }
 
     fn get_vertices(&self, query_node: u32) -> Vec<(u32, f32)> {
         match self.mapping.get(&query_node) {
             None => vec![],
-            Some(m) => self.graph.get_vertices(*m)
+            Some(m) => self.graph.get_vertices(*m),
         }
     }
 
     fn get_vertice(&self, a: u32, b: u32) -> Result<Option<f32>, AcndgError> {
         match self.mapping.get(&a) {
             None => Err(AcndgError::NodeNonexistence(a)),
-            Some(a) => {
-                match self.mapping.get(&b) {
-                    None => Err(AcndgError::NodeNonexistence(b)),
-                    Some(b) => Ok(self.graph.get_vertice(*a, *b).unwrap())
-                }
-            }
+            Some(a) => match self.mapping.get(&b) {
+                None => Err(AcndgError::NodeNonexistence(b)),
+                Some(b) => Ok(self.graph.get_vertice(*a, *b).unwrap()),
+            },
         }
     }
 }
@@ -351,7 +350,7 @@ mod test {
             Err(NdgError::ExceedBoundary(11, graph.capacity))
         );
     }
-    
+
     #[test]
     fn acndg_constructors_works() {
         _ = AnyCastNdGraph::new();
@@ -359,18 +358,18 @@ mod test {
             _ = AnyCastNdGraph::with_capacity(cap)
         }
     }
-    
+
     #[test]
     fn acndg_connectivity_works() {
         let mut graph = AnyCastNdGraph::new();
         graph.connect(36, 69, 0.42).unwrap();
         assert_eq!(0.42, graph.get_vertice(36, 69).unwrap().unwrap());
     }
-    
+
     #[test]
     fn acndg_many_connection_works() {
         let mut graph = AnyCastNdGraph::new();
-        for i in 0..=1000 {
+        for i in 0..=999 {
             graph.connect(i + 69, i + 4069, 420f32 / i as f32).unwrap()
         }
         assert_eq!(2000, graph.len());
